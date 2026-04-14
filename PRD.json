@@ -1,0 +1,472 @@
+{
+  "app": {
+    "name": "StreamForge iOS",
+    "version": "1.0.0",
+    "platform": "iOS",
+    "focus": [
+      "stream stability",
+      "iphone performance",
+      "low thermal impact",
+      "battery efficiency",
+      "low-latency controls"
+    ]
+  },
+  "scope": {
+    "payments": false,
+    "subscriptions": false,
+    "multistream": true,
+    "advancedAlerts": true,
+    "cloudEditing": false
+  },
+  "userModes": ["guest", "authenticated"],
+  "features": {
+    "auth": {
+      "enabled": true,
+      "modes": ["guest", "email", "twitch_oauth", "youtube_oauth"],
+      "oauthStrategy": {
+        "twitch": "pkce_or_backend_exchange",
+        "youtube": "backend_exchange_required"
+      }
+    },
+    "destinations": {
+      "types": ["twitch", "youtube", "custom_rtmp"],
+      "saveMultiple": true,
+      "secureStorage": true,
+      "customProtocols": ["rtmp", "rtmps", "srt"],
+      "destinationTypeRules": {
+        "twitch": {
+          "rtmpUrlEditable": false,
+          "streamKeyEditable": false,
+          "usesOAuth": true
+        },
+        "youtube": {
+          "rtmpUrlEditable": false,
+          "streamKeyEditable": false,
+          "usesOAuth": true
+        },
+        "custom_rtmp": {
+          "rtmpUrlEditable": true,
+          "streamKeyEditable": true,
+          "usesOAuth": false
+        }
+      }
+    },
+    "multistream": {
+      "enabled": true,
+      "maxDestinationsPerStream": 3,
+      "supportedPlatforms": ["twitch", "youtube", "custom_rtmp"],
+      "requiresBackend": true,
+      "chatAggregation": true
+    },
+    "streamSetup": {
+      "fields": [
+        "title",
+        "description",
+        "destinations",
+        "rtmpUrl",
+        "streamKey",
+        "resolution",
+        "fps",
+        "bitrate",
+        "orientation",
+        "captureMode"
+      ],
+      "presets": ["performance", "balanced", "quality"],
+      "allowMultipleDestinations": true,
+      "maxDestinationsPerStream": 3,
+      "fieldConditions": {
+        "rtmpUrl": "custom_rtmp_only",
+        "streamKey": "custom_rtmp_only"
+      }
+    },
+    "capture": {
+      "modes": ["screen", "front_camera", "rear_camera"],
+      "frameworks": ["ReplayKit", "AVFoundation", "VideoToolbox"],
+      "privacyScreensaver": {
+        "enabled": true,
+        "activation": ["manual", "auto_on_app_background"],
+        "placeholder": "blurred_screen"
+      },
+      "supportedCombinations": {
+        "screen": {
+          "webcamOverlay": false,
+          "notes": "screen capture is app-only; overlays limited to text/image"
+        },
+        "front_camera": {
+          "webcamOverlay": true,
+          "notes": "camera capture supports text/image overlays"
+        },
+        "rear_camera": {
+          "webcamOverlay": true,
+          "notes": "camera capture supports text/image overlays"
+        }
+      }
+    },
+    "audio": {
+      "micToggle": true,
+      "deviceAudioToggle": true,
+      "inputSelection": true,
+      "audioLevelMeter": true,
+      "noiseReductionBasic": true,
+      "mixingMode": "mic_plus_app",
+      "appAudioScope": "current_app_only",
+      "supportsSystemAudio": false,
+      "separateDeviceAndMicVolume": true
+    },
+    "overlays": {
+      "types": ["text", "image", "webcam", "web"],
+      "templates": ["talking_head", "gaming", "irl", "minimal"],
+      "dragResize": true,
+      "maxOverlayCount": 4,
+      "maxWebOverlays": 2,
+      "maxWidgetOverlays": 2,
+      "lightweightRendering": true,
+      "webSafety": {
+        "maxRefreshRateFps": 15,
+        "cpuBudgetPercent": 10,
+        "offlineFallback": "static_image"
+      }
+    },
+    "widgets": {
+      "enabled": true,
+      "types": ["alert_box", "chat_box", "event_list", "goal"],
+      "rendering": "web_widget_overlay"
+    },
+    "alerts": {
+      "enabled": true,
+      "types": ["follow", "subscribe", "bits", "donation", "superchat", "membership"],
+      "rendering": "web_widget_overlay",
+      "sources": ["streamlabs_style_widgets", "custom_url_widgets"],
+      "inAppPreview": true
+    },
+    "scenes": {
+      "enabled": true,
+      "maxScenes": 3,
+      "scenePresets": ["talking_head", "gaming", "irl", "minimal"],
+      "quickSwitchInLiveControls": true
+    },
+    "liveChat": {
+      "enabled": true,
+      "providers": ["youtube", "twitch"],
+      "access": "companion_web_app_only",
+      "inAppDisplay": false,
+      "renderIntoStream": false,
+      "aggregatedInCompanionApp": true
+    },
+    "liveChatHighlights": {
+      "enabled": true,
+      "providers": ["youtube", "twitch"],
+      "displayMode": "toast",
+      "maxItemsOnScreen": 2
+    },
+    "liveControls": {
+      "startStop": true,
+      "muteUnmuteMic": true,
+      "switchCamera": true,
+      "lockOrientation": true,
+      "sceneSwitch": true,
+      "pausePlaceholder": {
+        "enabled": true,
+        "type": "static_image",
+        "maxDurationSeconds": 300,
+        "streamContinues": true
+      },
+      "autoReconnect": true
+    },
+    "monitoring": {
+      "showDuration": true,
+      "showBitrate": true,
+      "showDroppedFrames": true,
+      "showConnectionHealth": true,
+      "showReconnectAttempts": true,
+      "showThermalStatus": true
+    },
+    "quickGoLive": {
+      "enabled": true,
+      "usesLastUsedDestination": true,
+      "usesBalancedPreset": true,
+      "skipSetupScreens": true
+    }
+  },
+  "performance": {
+    "priority": "highest",
+    "goals": {
+      "lowCpuUsage": true,
+      "lowMemoryPressure": true,
+      "batteryOptimized": true,
+      "thermalAware": true,
+      "gracefulDegradation": true
+    },
+    "livePriorityMode": {
+      "enabled": true,
+      "focus": "stream_stability_over_ui_fidelity",
+      "previewFpsCap": 15,
+      "disableNonEssentialUIEffects": true,
+      "userToggleable": true,
+      "defaultOn": true
+    },
+    "acceptanceCriteria": {
+      "droppedFramesPercentMax": 2,
+      "reconnectTimeSecondsMax": 10,
+      "bitrateFloorKbps": 1500,
+      "thermalStateTarget": "nominal_or_fair",
+      "sessionUptimeMinutesTarget": 60
+    },
+    "deviceTierMatrix": {
+      "low": {
+        "maxResolution": "720p",
+        "maxFps": 30,
+        "bitrateFloorKbps": 1200
+      },
+      "mid": {
+        "maxResolution": "1080p",
+        "maxFps": 30,
+        "bitrateFloorKbps": 1500
+      },
+      "high": {
+        "maxResolution": "1080p",
+        "maxFps": 60,
+        "bitrateFloorKbps": 2000
+      }
+    },
+    "performanceCoach": {
+      "enabled": true,
+      "actions": [
+        "lower_fps",
+        "reduce_bitrate",
+        "disable_overlays",
+        "switch_capture_mode",
+        "cap_preview_fps",
+        "disable_ui_effects"
+      ]
+    },
+    "adaptiveBehavior": {
+      "reduceBitrateOnStress": true,
+      "lowerPreviewQualityOnStress": true,
+      "disableHeavyAnimationsOnStress": true,
+      "drop60fpsTo30fpsWhenNeeded": true,
+      "showPerformanceWarnings": true
+    },
+    "thermalManagement": {
+      "monitorThermalState": true,
+      "actions": [
+        "warn_user",
+        "reduce_preview_load",
+        "reduce_overlay_updates",
+        "suggest_lower_quality"
+      ]
+    },
+    "memoryManagement": {
+      "reuseBuffers": true,
+      "releaseUnusedResources": true,
+      "limitLargeOverlayAssets": true,
+      "avoidRepeatedImageDecode": true
+    },
+    "networkResilience": {
+      "detectDropFast": true,
+      "autoReconnect": true,
+      "preserveSessionState": true,
+      "showReconnectUi": true,
+      "disconnectProtection": {
+        "enabled": true,
+        "maxHoldSeconds": 120,
+        "usesSlate": true
+      }
+    }
+  },
+  "screens": [
+    "Splash",
+    "LoginOrGuest",
+    "Home",
+    "Destinations",
+    "NewStreamSetup",
+    "OverlayEditor",
+    "LiveControlRoom",
+    "StreamSummary",
+    "Settings"
+  ],
+  "streamSummary": {
+    "qualityScore": true,
+    "topIssues": true,
+    "nextTimeSuggestions": true
+  },
+  "companionWebApp": {
+    "enabled": true,
+    "customizableOptions": [
+      "overlays",
+      "stream_titles_descriptions",
+      "destinations"
+    ],
+    "liveChatView": {
+      "enabled": true,
+      "providers": ["youtube", "twitch"]
+    },
+    "chatAggregation": {
+      "enabled": true,
+      "providers": ["youtube", "twitch", "custom_rtmp"]
+    },
+    "widgetOverlays": {
+      "enabled": true,
+      "types": ["alert_box", "chat_box", "event_list", "goal"],
+      "supportsCustomUrlWidgets": true
+    }
+  },
+  "settings": {
+    "defaultResolution": "720p",
+    "defaultFps": 30,
+    "defaultOrientation": "portrait",
+    "availableResolutions": ["720p", "1080p"],
+    "availableFps": [30, 60],
+    "availableOrientations": ["portrait", "landscape"],
+    "defaultAudioInput": true,
+    "saveLastUsedDestination": true,
+    "saveLastUsedStreamConfig": true
+  },
+  "dataPersistence": {
+    "guest": "local_only",
+    "authenticated": "local_plus_optional_sync"
+  },
+  "dataModels": {
+    "User": {
+      "id": "uuid",
+      "email": "string|null",
+      "mode": "guest|authenticated",
+      "provider": "email|twitch|youtube|null",
+      "createdAt": "timestamp"
+    },
+    "Destination": {
+      "id": "uuid",
+      "userId": "uuid|null",
+      "type": "twitch|youtube|custom_rtmp",
+      "name": "string",
+      "rtmpUrl": "string",
+      "streamKeyRef": "secure_reference",
+      "createdAt": "timestamp"
+    },
+    "StreamSession": {
+      "id": "uuid",
+      "userId": "uuid|null",
+      "destinationIds": "uuid[]",
+      "primaryDestinationId": "uuid",
+      "title": "string",
+      "description": "string",
+      "captureMode": "screen|front_camera|rear_camera",
+      "resolution": "720p|1080p",
+      "fps": "30|60",
+      "bitrate": "number",
+      "orientation": "portrait|landscape",
+      "status": "idle|preparing|live|reconnecting|ended|failed",
+      "startedAt": "timestamp|null",
+      "endedAt": "timestamp|null"
+    },
+    "Scene": {
+      "id": "uuid",
+      "streamSessionId": "uuid",
+      "name": "string",
+      "order": "number",
+      "isDefault": "boolean"
+    },
+    "Overlay": {
+      "id": "uuid",
+      "streamSessionId": "uuid",
+      "sceneId": "uuid|null",
+      "type": "text|image|webcam|web",
+      "content": "string",
+      "position": {
+        "x": "number",
+        "y": "number"
+      },
+      "size": {
+        "width": "number",
+        "height": "number"
+      },
+      "visible": "boolean"
+    },
+    "PerformanceSample": {
+      "id": "uuid",
+      "streamSessionId": "uuid",
+      "bitrate": "number",
+      "droppedFrames": "number",
+      "reconnectCount": "number",
+      "thermalState": "nominal|fair|serious|critical",
+      "timestamp": "timestamp"
+    }
+  },
+  "iosTech": {
+    "language": "Swift",
+    "ui": "SwiftUI",
+    "frameworks": [
+      "ReplayKit",
+      "AVFoundation",
+      "VideoToolbox",
+      "Network",
+      "Keychain"
+    ],
+    "encoding": {
+      "hardwareAccelerated": true,
+      "fallbackBehavior": "reduce_quality_before_failure",
+      "codecs": ["h264", "hevc_optional"],
+      "transportProtocols": ["rtmp", "rtmps", "srt"]
+    }
+  },
+  "backend": {
+    "required": false,
+    "conditionalRequirements": {
+      "twitch_oauth": "optional_backend_exchange",
+      "youtube_oauth": "backend_required_for_token_exchange_and_live_creation",
+      "multistream": "backend_required_for_relay_or_transcode"
+    },
+    "recommended": ["Supabase", "Firebase"],
+    "responsibilities": [
+      "optional_auth",
+      "destination_sync",
+      "session_tracking",
+      "basic_analytics",
+      "error_logging"
+    ],
+    "multistreamBackend": {
+      "mode": "relay_single_upload",
+      "perDestinationBitrateStrategy": "balanced_adaptive",
+      "failureHandling": "continue_remaining_destinations"
+    }
+  },
+  "api": {
+    "mode": "optional_backend",
+    "offlineBehavior": "local_only",
+    "auth": [
+      "POST /auth/login",
+      "POST /auth/oauth",
+      "POST /auth/guest"
+    ],
+    "destinations": [
+      "POST /destinations",
+      "GET /destinations",
+      "PATCH /destinations/:id",
+      "DELETE /destinations/:id"
+    ],
+    "streams": [
+      "POST /streams",
+      "GET /streams/:id",
+      "PATCH /streams/:id",
+      "POST /streams/:id/start",
+      "POST /streams/:id/stop",
+      "POST /streams/:id/reconnect"
+    ],
+    "overlays": [
+      "POST /overlays",
+      "GET /overlays/:streamId",
+      "PATCH /overlays/:id",
+      "DELETE /overlays/:id"
+    ],
+    "scenes": [
+      "POST /scenes",
+      "GET /scenes/:streamId",
+      "PATCH /scenes/:id",
+      "DELETE /scenes/:id"
+    ],
+    "performance": [
+      "POST /streams/:id/performance-samples",
+      "GET /streams/:id/performance-summary"
+    ]
+  }
+}
