@@ -112,9 +112,9 @@ enum StreamPreset: String, Codable, CaseIterable {
 
     var bitrateKbps: Int {
         switch self {
-        case .performance: return 1500
-        case .balanced: return 2500
-        case .quality: return 4000
+        case .performance: return 2500  // 720p30 — clean for mobile gaming
+        case .balanced: return 4500     // 720p30 — high quality
+        case .quality: return 6500      // 1080p60 — YouTube recommended minimum
         }
     }
 }

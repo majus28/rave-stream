@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// YouTube Data API v3 — Live Streaming endpoints
 final class YouTubeLiveAPI {
@@ -207,30 +208,35 @@ final class YouTubeLiveAPI {
     // MARK: - 8. Upload thumbnail
 
     func uploadThumbnail(videoId: String, imageData: Data) async throws {
-        StreamLogger.log(.rtmp, "YT API: Uploading thumbnail (\(imageData.count) bytes)...")
+        // Convert to JPEG if needed (YouTube requires JPEG/PNG, max 2MB)
+        let jpegData: Data
+        if let uiImage = UIImage(data: imageData) {
+            jpegData = uiImage.jpegData(compressionQuality: 0.9) ?? imageData
+        } else {
+            jpegData = imageData
+        }
 
-        let boundary = UUID().uuidString
-        let url = URL(string: "https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=\(videoId)&uploadType=multipart")!
+        StreamLogger.log(.rtmp, "YT API: Uploading thumbnail (\(jpegData.count) bytes)...")
+
+        // Simple media upload — send image directly as request body
+        let url = URL(string: "https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=\(videoId)&uploadType=media")!
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        request.setValue("multipart/related; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-
-        var body = Data()
-        // Metadata part
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Type: application/json\r\n\r\n".data(using: .utf8)!)
-        body.append("{}\r\n".data(using: .utf8)!)
-        // Image part
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
-        body.append(imageData)
-        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
-
-        request.httpBody = body
+        request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+        request.setValue("\(jpegData.count)", forHTTPHeaderField: "Content-Length")
+        request.httpBody = jpegData
 
         let (data, response) = try await session.data(for: request)
+
+        if let httpResponse = response as? HTTPURLResponse {
+            StreamLogger.log(.rtmp, "YT API: Thumbnail upload HTTP \(httpResponse.statusCode)")
+            if let body = String(data: data, encoding: .utf8)?.prefix(200) {
+                StreamLogger.log(.rtmp, "YT API: Thumbnail response: \(body)")
+            }
+        }
+
         try checkResponse(response, data: data)
         StreamLogger.log(.rtmp, "YT API: Thumbnail uploaded!")
     }

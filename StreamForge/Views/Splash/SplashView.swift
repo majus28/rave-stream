@@ -2,36 +2,47 @@ import SwiftUI
 
 struct SplashView: View {
     @State private var isAnimating = false
-    @State private var showMain = false
+    @State private var showText = false
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            // Dark gradient background
+            LinearGradient(
+                colors: [
+                    Color(red: 0.08, green: 0.03, blue: 0.18),
+                    Color.black
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-            VStack(spacing: 16) {
-                Image(systemName: "dot.radiowaves.left.and.right")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.linearGradient(
-                        colors: [.purple, .blue, .cyan],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .scaleEffect(isAnimating ? 1.1 : 0.9)
-                    .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: isAnimating)
+            VStack(spacing: 20) {
+                // Animated logo
+                AppLogoView(size: 120)
+                    .scaleEffect(isAnimating ? 1.0 : 0.5)
+                    .opacity(isAnimating ? 1 : 0)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.7), value: isAnimating)
 
-                Text("StreamForge")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                // App name
+                if showText {
+                    VStack(spacing: 6) {
+                        Text("StreamForge")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
 
-                Text("Go Live, Anywhere")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+                        Text("Go Live, Anywhere")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
             }
         }
         .onAppear {
-            isAnimating = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                withAnimation { showMain = true }
+            withAnimation { isAnimating = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                withAnimation(.easeOut(duration: 0.5)) { showText = true }
             }
         }
     }

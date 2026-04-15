@@ -13,7 +13,7 @@ final class FrameProcessor {
 
     private var frameCounter = 0
     var forceRotateToLandscape = false
-    var forceSkipOverlays = false  // Set by SampleHandler when under CPU pressure
+    // No longer permanently disabling overlays — removed forceSkipOverlays
 
     // Cached scene layout
     private var cachedLayout: SceneLayout?
@@ -24,9 +24,17 @@ final class FrameProcessor {
     private var hasOverlays = false
     private var isFullScreen = true
 
+    // Color filter — cached filter instances (NEVER allocate per-frame)
+    private var cachedFilterParams = FilterParams()
+    private var hasFilter = false
+    private lazy var colorControlsFilter = CIFilter(name: "CIColorControls")
+    private lazy var temperatureFilter = CIFilter(name: "CITemperatureAndTint")
+    private lazy var sepiaFilter = CIFilter(name: "CISepiaTone")
+    private lazy var vignetteFilter = CIFilter(name: "CIVignette")
+
     /// True when no processing is needed — raw frames can go straight to encoder
     var canSkipProcessing: Bool {
-        !cachedBRBActive && (!hasOverlays || forceSkipOverlays) && isFullScreen && !forceRotateToLandscape
+        !cachedBRBActive && !hasOverlays && isFullScreen && !forceRotateToLandscape && !hasFilter
     }
 
     // Reusable output buffer (avoid allocation every frame)
@@ -65,14 +73,12 @@ final class FrameProcessor {
             return sampleBuffer
         }
 
-        // FAST PATH: no overlays and game is full screen — just rotate if needed
+        // FAST PATH: no overlays and game is full screen
         if !hasOverlays && isFullScreen {
-            if forceRotateToLandscape {
+            if hasFilter || forceRotateToLandscape {
                 guard let src = CMSampleBufferGetImageBuffer(sampleBuffer) else { return sampleBuffer }
-                let h = CVPixelBufferGetHeight(src)
-                let w = CVPixelBufferGetWidth(src)
-                if h > w, let rotated = rotateToLandscape(src) {
-                    return createSampleBuffer(from: rotated, timing: sampleBuffer) ?? sampleBuffer
+                if let processed = applyFilterAndRotate(src) {
+                    return createSampleBuffer(from: processed, timing: sampleBuffer) ?? sampleBuffer
                 }
             }
             return sampleBuffer
@@ -128,13 +134,17 @@ final class FrameProcessor {
         let srcW = CVPixelBufferGetWidth(srcBuffer)
         let srcH = CVPixelBufferGetHeight(srcBuffer)
 
-        let ciImage: CIImage
+        var ciImage: CIImage
         if forceRotateToLandscape && srcH > srcW {
             ciImage = CIImage(cvPixelBuffer: srcBuffer)
                 .transformed(by: CGAffineTransform(rotationAngle: -.pi / 2))
                 .transformed(by: CGAffineTransform(translationX: 0, y: CGFloat(srcW)))
         } else {
             ciImage = CIImage(cvPixelBuffer: srcBuffer)
+        }
+        // Apply color filter
+        if hasFilter {
+            ciImage = applyCIFilter(to: ciImage)
         }
 
         if let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) {
@@ -196,6 +206,81 @@ final class FrameProcessor {
         }
 
         return createSampleBuffer(from: dst, timing: sampleBuffer) ?? sampleBuffer
+    }
+
+    // MARK: - Color Filter
+
+    /// Apply filter + rotate in one pass (fast path)
+    private func applyFilterAndRotate(_ srcBuffer: CVPixelBuffer) -> CVPixelBuffer? {
+        var ciImage = CIImage(cvPixelBuffer: srcBuffer)
+
+        let srcW = CVPixelBufferGetWidth(srcBuffer)
+        let srcH = CVPixelBufferGetHeight(srcBuffer)
+
+        // Rotate if needed
+        if forceRotateToLandscape && srcH > srcW {
+            ciImage = ciImage
+                .transformed(by: CGAffineTransform(rotationAngle: -.pi / 2))
+                .transformed(by: CGAffineTransform(translationX: 0, y: CGFloat(srcW)))
+        }
+
+        // Apply filter
+        if hasFilter {
+            ciImage = applyCIFilter(to: ciImage)
+        }
+
+        let outW = forceRotateToLandscape && srcH > srcW ? srcH : srcW
+        let outH = forceRotateToLandscape && srcH > srcW ? srcW : srcH
+        let dst = getOrCreateBuffer(width: outW, height: outH)
+        ciContext.render(ciImage, to: dst)
+        return dst
+    }
+
+    /// Apply filter to source buffer (filter-only, no rotation)
+    private func applyFilter(to srcBuffer: CVPixelBuffer) -> CVPixelBuffer? {
+        var ciImage = CIImage(cvPixelBuffer: srcBuffer)
+        ciImage = applyCIFilter(to: ciImage)
+        let w = CVPixelBufferGetWidth(srcBuffer)
+        let h = CVPixelBufferGetHeight(srcBuffer)
+        let dst = getOrCreateBuffer(width: w, height: h)
+        ciContext.render(ciImage, to: dst)
+        return dst
+    }
+
+    /// Apply CIFilter chain — uses CACHED filter instances (zero allocations per frame)
+    private func applyCIFilter(to image: CIImage) -> CIImage {
+        let p = cachedFilterParams
+        var result = image
+
+        if p.saturation != 1.0 || p.brightness != 0.0 || p.contrast != 1.0 {
+            colorControlsFilter?.setValue(result, forKey: kCIInputImageKey)
+            colorControlsFilter?.setValue(p.saturation, forKey: "inputSaturation")
+            colorControlsFilter?.setValue(p.brightness, forKey: "inputBrightness")
+            colorControlsFilter?.setValue(p.contrast, forKey: "inputContrast")
+            result = colorControlsFilter?.outputImage ?? result
+        }
+
+        if p.temperature != 6500 || p.tint != 0 {
+            temperatureFilter?.setValue(result, forKey: kCIInputImageKey)
+            temperatureFilter?.setValue(CIVector(x: CGFloat(p.temperature), y: CGFloat(p.tint)), forKey: "inputNeutral")
+            temperatureFilter?.setValue(CIVector(x: 6500, y: 0), forKey: "inputTargetNeutral")
+            result = temperatureFilter?.outputImage ?? result
+        }
+
+        if p.sepia > 0 {
+            sepiaFilter?.setValue(result, forKey: kCIInputImageKey)
+            sepiaFilter?.setValue(p.sepia, forKey: "inputIntensity")
+            result = sepiaFilter?.outputImage ?? result
+        }
+
+        if p.vignette > 0 {
+            vignetteFilter?.setValue(result, forKey: kCIInputImageKey)
+            vignetteFilter?.setValue(p.vignette, forKey: "inputIntensity")
+            vignetteFilter?.setValue(max(result.extent.width, result.extent.height) * 0.1, forKey: "inputRadius")
+            result = vignetteFilter?.outputImage ?? result
+        }
+
+        return result
     }
 
     // MARK: - Image Drawing
@@ -331,6 +416,16 @@ final class FrameProcessor {
         cachedBRBActive = defaults.bool(forKey: "brb_active")
         if !cachedBRBActive { cachedBRBPixelBuffer = nil }
 
+        // Load color filter
+        if let filterData = defaults.data(forKey: "video_filter_params"),
+           let params = try? JSONDecoder().decode(FilterParams.self, from: filterData) {
+            cachedFilterParams = params
+            hasFilter = !params.isIdentity
+        } else {
+            hasFilter = false
+            cachedFilterParams = FilterParams()
+        }
+
         if let data = defaults.data(forKey: "scene_layout"),
            let layout = try? JSONDecoder().decode(SceneLayout.self, from: data) {
             cachedLayout = layout
@@ -397,6 +492,23 @@ final class FrameProcessor {
         let gen = AVAssetImageGenerator(asset: AVAsset(url: url))
         gen.appliesPreferredTrackTransform = true
         return try? gen.copyCGImage(at: .zero, actualTime: nil)
+    }
+}
+
+// MARK: - FilterParams (extension duplicate)
+
+struct FilterParams: Codable {
+    var saturation: Float = 1.0
+    var contrast: Float = 1.0
+    var brightness: Float = 0.0
+    var temperature: Float = 6500
+    var tint: Float = 0
+    var sepia: Float = 0
+    var vignette: Float = 0
+
+    var isIdentity: Bool {
+        saturation == 1.0 && contrast == 1.0 && brightness == 0.0 &&
+        temperature == 6500 && tint == 0 && sepia == 0 && vignette == 0
     }
 }
 

@@ -32,7 +32,7 @@ struct BroadcastPickerView: UIViewRepresentable {
 enum BroadcastConfig {
     static let appGroupId = "group.com.majuz.streamforge"
 
-    static func save(url: String, streamKey: String, bitrate: Int, width: Int, height: Int) {
+    static func save(url: String, streamKey: String, bitrate: Int, width: Int, height: Int, fps: Int) {
         guard let defaults = UserDefaults(suiteName: appGroupId) else {
             StreamLogger.log(.stream, "BroadcastConfig: FAILED to access App Group!")
             return
@@ -42,8 +42,9 @@ enum BroadcastConfig {
         defaults.set(bitrate, forKey: "rtmp_bitrate")
         defaults.set(width, forKey: "rtmp_width")
         defaults.set(height, forKey: "rtmp_height")
+        defaults.set(fps, forKey: "rtmp_fps")
         defaults.synchronize()
-        StreamLogger.log(.stream, "BroadcastConfig: Saved (\(url), \(width)x\(height)@\(bitrate)kbps)")
+        StreamLogger.log(.stream, "BroadcastConfig: Saved (\(url), \(width)x\(height)@\(fps)fps \(bitrate)kbps)")
 
         // Verify it was saved
         let check = defaults.string(forKey: "rtmp_url")
@@ -57,5 +58,6 @@ enum BroadcastConfig {
         defaults.removeObject(forKey: "rtmp_bitrate")
         defaults.removeObject(forKey: "rtmp_width")
         defaults.removeObject(forKey: "rtmp_height")
+        defaults.removeObject(forKey: "rtmp_fps")
     }
 }

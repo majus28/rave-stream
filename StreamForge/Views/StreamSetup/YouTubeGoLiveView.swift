@@ -10,7 +10,7 @@ struct YouTubeGoLiveView: View {
     @State private var title = ""
     @State private var description = ""
     @State private var privacy = "unlisted"
-    @State private var resolution = "720p"
+    @State private var resolution = "1080p"
     @State private var orientation = "landscape"
     @State private var isWorking = false
 
@@ -201,10 +201,9 @@ struct YouTubeGoLiveView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Quality").font(.caption.bold()).foregroundColor(.gray)
-                Picker("Quality", selection: $resolution) {
-                    Text("720p").tag("720p")
-                    Text("1080p").tag("1080p")
-                }.pickerStyle(.segmented)
+                Text("Locked: 1080p / 60 FPS / 6000 kbps")
+                    .font(.subheadline)
+                    .foregroundColor(.white)
             }
 
             // Scene Layout Editor
@@ -214,6 +213,12 @@ struct YouTubeGoLiveView: View {
                     .font(.caption2).foregroundColor(.gray)
             }
             SceneEditorView(layout: SceneLayoutStore.load()) { _ in }
+
+            // Audio Mixer
+            AudioMixerView()
+
+            // Color filter
+            VideoFilterPicker()
 
             // BRB + text overlays
             StreamControlPanel()
@@ -228,9 +233,10 @@ struct YouTubeGoLiveView: View {
                             title: title,
                             description: description,
                             privacy: privacy,
-                            resolution: resolution == "1080p" ? .hd1080p : .hd720p,
+                            resolution: .hd1080p,
                             orientation: orientation == "landscape" ? .landscape : .portrait,
-                            bitrate: resolution == "1080p" ? 4000 : 2500,
+                            fps: .fps60,
+                            bitrate: 6000,
                             thumbnailData: thumbnailData
                         )
                     } catch {
@@ -272,6 +278,12 @@ struct YouTubeGoLiveView: View {
 
             // Scene Editor — edit overlays live
             SceneEditorView(layout: SceneLayoutStore.load()) { _ in }
+
+            // Audio Mixer
+            AudioMixerView()
+
+            // Color filter
+            VideoFilterPicker()
 
             // BRB
             StreamControlPanel()
@@ -322,10 +334,7 @@ struct YouTubeGoLiveView: View {
             VStack(spacing: 6) {
                 Text("STEP 2").font(.caption.bold()).foregroundColor(.green)
                 Button {
-                    Task {
-                        do { try await goLiveService.waitAndGoLive() }
-                        catch { goLiveService.state = .error(error.localizedDescription) }
-                    }
+                    goLiveService.waitAndGoLive()
                 } label: {
                     HStack {
                         Spacer()

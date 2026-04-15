@@ -13,13 +13,7 @@ struct LoginView: View {
 
                 // Logo
                 VStack(spacing: 12) {
-                    Image(systemName: "dot.radiowaves.left.and.right")
-                        .font(.system(size: 56))
-                        .foregroundStyle(.linearGradient(
-                            colors: [.purple, .blue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ))
+                    AppLogoView(size: 100)
 
                     Text("StreamForge")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
